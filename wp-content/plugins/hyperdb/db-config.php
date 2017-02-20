@@ -214,27 +214,31 @@ $wpdb->check_tcp_responsiveness = true;
  * This adds the DB defined in wp-config.php as a read/write server for
  * the 'global' dataset. (Every table is in 'global' by default.)
  */
-$wpdb->add_database(array(
-	'host'     => DB_HOST,     // If port is other than 3306, use host:port.
-	'user'     => DB_USER,
-	'password' => DB_PASSWORD,
-	'name'     => DB_NAME,
-));
 
+/*==================================================================================*/
+$wpdb->add_database( array(
+        'host'     => DB_HOST,
+        'user'     => DB_USER,
+        'password' => DB_PASSWORD,
+        'name'     => DB_NAME,
+        'write'    => 1, // master server takes write queries
+        'read'     => is_admin() || empty( $_ENV['REPLICA_DB_HOST'] ) ? 1 : 0, // ... but only takes read queries in the admin if the replica is available
+) );
 /**
- * This adds the same server again, only this time it is configured as a slave.
- * The last three parameters are set to the defaults but are shown for clarity.
+ * Register replica database server if it's available in this environment
  */
-$wpdb->add_database(array(
-	'host'     => DB_HOST,     // If port is other than 3306, use host:port.
-	'user'     => DB_USER,
-	'password' => DB_PASSWORD,
-	'name'     => DB_NAME,
-	'write'    => 0,
-	'read'     => 1,
-	'dataset'  => 'global',
-	'timeout'  => 0.2,
-));
+if ( ! empty( $_ENV['REPLICA_DB_HOST'] ) && ! is_admin() ) {
+        $wpdb->add_database(array(
+                'host'     => $_ENV['REPLICA_DB_HOST'] . ':' . $_ENV['REPLICA_DB_PORT'],
+                'user'     => $_ENV['REPLICA_DB_USER'],
+                'password' => $_ENV['REPLICA_DB_PASSWORD'],
+                'name'     => $_ENV['REPLICA_DB_NAME'],
+                'write'    => 0, // replica doesn't take write queries
+                'read'     => 1, // ... but it does take read queries
+        ));
+}
+/*==================================================================================*/
+
 
 /** Sample Configuration 2: Partitioning **/
 
